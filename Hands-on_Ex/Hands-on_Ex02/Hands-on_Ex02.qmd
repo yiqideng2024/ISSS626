@@ -1,0 +1,311 @@
+---
+title: "Hands-on Exercise 2"
+author: "Deng Yiqi"
+date: "September 5, 2025"
+date-modified: "last-modified"
+format: 
+  html:
+    toc-depth: 4
+    toc-expand: true
+execute:
+  eval: true
+  echo: true
+  warning: false
+  freeze: true
+---
+
+# Part1 Overview
+
+## Getting started
+
+### Install and launching R packages
+
+The code chunk below use p_load() of pacman package to check if tidyverse packages are installed in the computer. If they are, then they will be launched into R.
+
+```{r}
+pacman::p_load(sf, terra, spatstat, tmap, rvest, tidyverse)
+```
+
+### Importing data
+```{r}
+mpsz_sf <- st_read("data/MasterPlan2019SubzoneBoundaryNoSeaKML.kml") %>% 
+  st_zm(drop = TRUE, what = "ZM") %>% st_transform(crs = 3414)
+```
+### Extracting Fields from the Description Column
+```{r}
+extract_kml_field <- function(html_text, field_name) {
+  if (is.na(html_text) || html_text == "") return(NA_character_)
+  
+  page <- read_html(html_text)
+  rows <- page %>% html_elements("tr")
+  
+  value <- rows %>%
+    keep(~ html_text2(html_element(.x, "th")) == field_name) %>%
+    html_element("td") %>%
+    html_text2()
+  
+  if (length(value) == 0) NA_character_ else value
+}
+```
+
+```{r}
+mpsz_sf <- mpsz_sf %>%
+  mutate(
+    REGION_N = map_chr(Description, extract_kml_field, "REGION_N"),
+    PLN_AREA_N = map_chr(Description, extract_kml_field, "PLN_AREA_N"),
+    SUBZONE_N = map_chr(Description, extract_kml_field, "SUBZONE_N"),
+    SUBZONE_C = map_chr(Description, extract_kml_field, "SUBZONE_C")
+  ) %>%
+  select(-Name, -Description) %>%
+  relocate(geometry, .after = last_col())
+```
+
+### Saving the Cleaned Data
+```{r}
+write_rds(mpsz_sf, "data/mpsz_cl.rds")
+```
+
+### Importing Childcare Services Data
+```{r}
+childcare_sf <- st_read("data/ChildCareServices.kml") %>% 
+  st_zm(drop = TRUE, what = "ZM") %>%
+  st_transform(crs = 3414)
+```
+## Mapping the Geospatial Data Sets
+
+###Static Map
+
+```{r}
+tm_shape(childcare_sf) + 
+  tm_dots()
+```
+
+###Interactive Map
+
+```{r}
+tmap_mode('view')
+tm_shape(childcare_sf) + 
+  tm_dots()
+tmap_mode('plot')
+```
+
+## Geospatial Data Wrangling
+
+### Converting sf Data Frames to ppp Class
+
+```{r}
+childcare_ppp <- as.ppp(childcare_sf)
+class(childcare_ppp)
+```
+
+### Converting sf Data Frames to ppp Class
+
+```{r}
+sg_owin <- as.owin(mpsz_sf)
+class(sg_owin)
+```
+
+### Combining Point Events Object and owin Object
+
+```{r}
+childcareSG_ppp = childcare_ppp[sg_owin]
+```
+
+## Clark-Evans Test for Nearest Neighbor Analysis
+
+### Perform the Clark-Evans Test Without CSR
+
+```{r}
+clarkevans.test(childcareSG_ppp,
+                correction="none",
+                clipregion="sg_owin",
+                alternative=c("clustered"))
+```
+
+### Perform the Clark-Evans Test With CSR
+
+```{r}
+clarkevans.test(childcareSG_ppp,
+                correction="none",
+                clipregion="sg_owin",
+                alternative=c("clustered"),
+                method="MonteCarlo",
+                nsim=99)
+```
+
+## Kernel Density Estimation Method
+
+### Working with Automatic Bandwidth Selection Method
+
+```{r}
+kde_SG_diggle <- density(
+  childcareSG_ppp,
+  sigma=bw.diggle,
+  edge=TRUE,
+  kernel="gaussian"
+)
+
+plot(kde_SG_diggle)
+```
+
+### Rescaling KDE Values
+
+```{r}
+childcareSG_ppp_km <- rescale.ppp(childcareSG_ppp, 1000, "km")
+
+kde_childcareSG_km <- density(childcareSG_ppp_km,
+                              sigma=bw.diggle,
+                              edge=TRUE,
+                              kernel="gaussian")
+
+plot(kde_childcareSG_km)
+```
+
+## Plotting Cartographic Quality KDE Map
+
+### Converting Gridded Output into Raster
+```{r}
+kde_childcareSG_bw_terra <- rast(kde_childcareSG_km)
+```
+
+### Assigning Projection Systems
+
+```{r}
+crs(kde_childcareSG_bw_terra) <- "EPSG:3414"
+```
+
+### Plotting the Raster
+
+```{r}
+tm_shape(kde_childcareSG_bw_terra) + 
+  tm_raster(col.scale = 
+              tm_scale_continuous(
+                values = "viridis"),
+            col.legend = tm_legend(
+            title = "Density values",
+            title.size = 0.7,
+            text.size = 0.7,
+            bg.color = "white",
+            bg.alpha = 0.7,
+            position = tm_pos_in(
+              "right", "bottom"),
+            frame = TRUE)) +
+  tm_graticules(labels.size = 0.7) +
+  tm_compass() +
+  tm_layout(scale = 1.0)
+```
+
+# Part2 Overview
+
+## Getting started
+
+### Install and launching R packages
+
+```{r}
+pacman::p_load(sf, spatstat, tmap, tidyverse)
+```
+
+```{r}
+mpsz_sf <- st_read("data/MasterPlan2019SubzoneBoundaryNoSeaKML.kml") %>% 
+  st_zm(drop = TRUE, what = "ZM") %>% st_transform(crs = 3414)
+```
+```{r}
+childcare_sf <- st_read("data/ChildCareServices.kml") %>% 
+  st_zm(drop = TRUE, what = "ZM") %>%
+  st_transform(crs = 3414)
+```
+```{r}
+# Define a function to extract the planning area from the Description column
+extract_pln_area <- function(description_text) {
+  if (is.na(description_text) || description_text == "") return(NA_character_)
+  
+  # Use regex to extract the PLN_AREA_N value from the HTML content
+  pattern <- "<th>PLN_AREA_N</th>\\s*<td>(.*?)</td>"
+  matches <- regmatches(description_text, regexec(pattern, description_text))
+  
+  if (length(matches[[1]]) > 1) {
+    return(matches[[1]][2])  # Extract the first match
+  } else {
+    return(NA_character_)
+  }
+}
+
+# Apply this function to the Description column to extract the PLN_AREA_N
+mpsz_sf <- mpsz_sf %>%
+  mutate(PLN_AREA_N = sapply(Description, extract_pln_area))
+
+# Verify if PLN_AREA_N is extracted correctly
+head(mpsz_sf$PLN_AREA_N)
+```
+
+## Filter for Choa Chu Kang Subzone
+```{r}
+# Filter the data for Choa Chu Kang subzone
+ck_subzone <- mpsz_sf %>%
+  filter(PLN_AREA_N == "CHOA CHU KANG")
+
+# Check the number of rows in the filtered dataset
+nrow(ck_subzone)  # Should be greater than 0 if there are results
+```
+
+## Filter for Choa Chu Kang Subzone
+```{r}
+# Convert the Childcare Services data to ppp object
+childcare_ppp <- as.ppp(childcare_sf)
+
+# Convert the filtered Choa Chu Kang boundary to an owin (observation window) object
+ck_owin <- as.owin(ck_subzone)
+
+# Filter the childcare points to only those inside Choa Chu Kang subzone
+childcare_ck_ppp <- childcare_ppp[ck_owin]
+
+# Check if the conversion was successful
+class(childcare_ck_ppp)
+```
+
+## Perform Clark-Evans Test for Nearest Neighbor Analysis
+```{r}
+# Perform Clark-Evans test without edge correction
+clarkevans.test(childcare_ck_ppp, correction="none", clipregion="ck_owin", alternative=c("clustered"))
+
+# Perform Monte Carlo test based on 99 simulations of CSR with fixed n
+clarkevans.test(childcare_ck_ppp, correction="none", clipregion="ck_owin", alternative=c("clustered"), method="MonteCarlo", nsim=99)
+```
+
+## Kernel Density Estimation (KDE)
+```{r}
+# Compute KDE using the Diggle method for bandwidth selection
+kde_SG_diggle <- density(childcare_ck_ppp, sigma=bw.diggle, edge=TRUE, kernel="gaussian")
+
+# Plot the KDE result
+plot(kde_SG_diggle)
+```
+
+## Rescale Data to Kilometers
+```{r}
+# Rescale the point pattern to kilometers
+childcare_ck_ppp_km <- rescale.ppp(childcare_ck_ppp, 1000, "km")
+
+# Compute the KDE on the rescaled data
+kde_childcareSG_km <- density(childcare_ck_ppp_km, sigma=bw.diggle, edge=TRUE, kernel="gaussian")
+
+# Plot the rescaled KDE
+plot(kde_childcareSG_km)
+```
+
+## Convert to Raster Format for Mapping
+```{r}
+# Convert the KDE result to SpatRaster object
+kde_childcareSG_bw_terra <- rast(kde_childcareSG_km)
+
+# Set the CRS for the raster
+crs(kde_childcareSG_bw_terra) <- "EPSG:3414"
+
+# Plot the raster map using tmap
+tm_shape(kde_childcareSG_bw_terra) + 
+  tm_raster(col.scale = tm_scale_continuous(values = "viridis"),
+            col.legend = tm_legend(title = "Density values", title.size = 0.7, text.size = 0.7, bg.color = "white", bg.alpha = 0.7, position = tm_pos_in("right", "bottom"), frame = TRUE)) +
+  tm_graticules(labels.size = 0.7) +
+  tm_compass() +
+  tm_layout(scale = 1.0)
+```
