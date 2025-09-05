@@ -1,0 +1,15 @@
+{
+  "hash": "5810a979a9bc70a6ca143fbe408a7bad",
+  "result": {
+    "engine": "knitr",
+    "markdown": "---\ntitle: \"Hands-on Exercise 1\"\nauthor: \"Deng Yiqi\"\ndate: \"September 1, 2025\"\ndate-modified: \"last-modified\"\nformat: \n  html:\n    toc-depth: 4\n    toc-expand: true\nexecute:\n  eval: true\n  echo: true\n  warning: false\n  freeze: true\n---\n\n# Overview\n\n## Getting started\n\nInstall and launching R packages\n\nThe code chunk below use p_load() of pacman package to check if tidyverse packages are installed in the computer.\nIf they are, then they will be launched into R.\n\n\n::: {.cell}\n\n```{.r .cell-code}\npacman::p_load(sf,tidyverse)\n```\n:::\n\n\n### Importing data\n\n\n::: {.cell}\n\n```{.r .cell-code}\nEx_data <- read_csv(\"data/data.csv\")\n```\n:::\n",
+    "supporting": [],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}

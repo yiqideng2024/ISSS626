@@ -1,0 +1,15 @@
+{
+  "hash": "9c5a3f764fded278b8f901e3bc2ee76a",
+  "result": {
+    "engine": "knitr",
+    "markdown": "---\ntitle: \"Hands-on_Ex02\"\nauthor: \"Deng Yiqi\"\ndate: \"September 5, 2025\"\ndate-modified: \"last-modified\"\nformat: \n  html:\n    toc-depth: 4\n    toc-expand: true\nexecute:\n  eval: true\n  echo: true\n  warning: false\n  freeze: true\n---\n\n# Part1 Overview\n\n## Getting started\n\n### Install and launching R packages\n\nThe code chunk below use p_load() of pacman package to check if tidyverse packages are installed in the computer. If they are, then they will be launched into R.\n\n\n::: {.cell}\n\n```{.r .cell-code}\npacman::p_load(sf, terra, spatstat, tmap, rvest, tidyverse)\n```\n:::\n\n\n### Importing data\n\n\n::: {.cell}\n\n```{.r .cell-code}\nmpsz_sf <- st_read(\"data/MasterPlan2019SubzoneBoundaryNoSeaKML.kml\") %>% \n  st_zm(drop = TRUE, what = \"ZM\") %>% st_transform(crs = 3414)\n```\n\n::: {.cell-output .cell-output-stdout}\n\n```\nReading layer `URA_MP19_SUBZONE_NO_SEA_PL' from data source \n  `/Users/kaixin/yiqideng2024/ISSS626/Hands-on_Ex/Hands-on_Ex02/data/MasterPlan2019SubzoneBoundaryNoSeaKML.kml' \n  using driver `KML'\nSimple feature collection with 332 features and 2 fields\nGeometry type: MULTIPOLYGON\nDimension:     XY, XYZ\nBounding box:  xmin: 103.6057 ymin: 1.158699 xmax: 104.0885 ymax: 1.470775\nz_range:       zmin: 0 zmax: 0\nGeodetic CRS:  WGS 84\n```\n\n\n:::\n:::\n\n",
+    "supporting": [],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}

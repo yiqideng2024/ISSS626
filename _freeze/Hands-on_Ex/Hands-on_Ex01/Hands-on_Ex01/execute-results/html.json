@@ -1,0 +1,17 @@
+{
+  "hash": "0dcd800ac0e95bab91e6a2c8331b9c2b",
+  "result": {
+    "engine": "knitr",
+    "markdown": "---\ntitle: \"Hands-on Exercise 1\"\nauthor: \"Deng Yiqi\"\ndate: \"September 1, 2025\"\ndate-modified: \"last-modified\"\nformat: \n  html:\n    toc-depth: 4\n    toc-expand: true\nexecute:\n  eval: true\n  echo: true\n  warning: false\n  freeze: true\n---\n\n# Overview\n\n## Getting started\n\n### Install and launching R packages\n\nThe code chunk below use p_load() of pacman package to check if tidyverse packages are installed in the computer. If they are, then they will be launched into R.\n\n\n::: {.cell}\n\n```{.r .cell-code}\npacman::p_load(sf,tidyverse)\n```\n:::\n\n\n### Importing data\n\n\n::: {.cell}\n\n```{.r .cell-code}\nEx_data <- read_csv(\"data/data.csv\")\n```\n:::\n\n\n------------------------------------------------------------------------\n\n### Plotting a simple bar chart\n\n\n::: {.cell}\n::: {.cell-output-display}\n![](Hands-on_Ex01_files/figure-html/unnamed-chunk-3-1.png){width=672}\n:::\n:::\n\n",
+    "supporting": [
+      "Hands-on_Ex01_files"
+    ],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}
